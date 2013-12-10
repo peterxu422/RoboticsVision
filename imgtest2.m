@@ -8,6 +8,7 @@ function [ output_args ] = imgtest( input_args )
     [img, map1] = imread(url);
     D = dir('./imgs/*.jpg');
     I2 = imcrop(img);
+    img = rgb2hsv(img);
     figure(1);
     imshow(img);
     
@@ -25,9 +26,9 @@ function [ output_args ] = imgtest( input_args )
     grnmask = false;
     blumask = false;
     
-    [minr, maxr, ming, maxg, minb, maxb] = maskThresh(I2);
+    [min1, max1, min2, max2, min3, max3] = maskThreshHSV(I2);
     
-    mask = (img(:,:,1) >= minr & img(:,:,1) <= maxr) & (img(:,:,2) >= ming & img(:,:,2) <= maxg) &(img(:,:,3) >= minb & img(:,:,3) <= maxb);
+    mask = (img(:,:,1) >= min1 & img(:,:,1) <= max1) & (img(:,:,2) >= min2 & img(:,:,2) <= max2) & (img(:,:,3) >= min3 & img(:,:,3) <= max3);
     
     % Create the mask, binary image
     %red_mask = img(:,:,1) > 220 & img(:,:,2) < 150 & img(:,:,3) < 150;
@@ -127,13 +128,23 @@ function [M00_cur, xc_cur, yc_cur] = compareImage(image)
     yc_cur = M01/M00;
 end
 
-function [minr, maxr, ming, maxg, minb, maxb] = maskThresh(img)
+function [minr, maxr, ming, maxg, minb, maxb] = maskThreshRGB(img)
     minr = mean(mean(img(:,:,1))) * 0.8;
     maxr = mean(mean(img(:,:,1))) * 1.2;
     ming = mean(mean(img(:,:,2))) * 0.8;
     maxg = mean(mean(img(:,:,2))) * 1.2;
     minb = mean(mean(img(:,:,3))) * 0.8;
     maxb = mean(mean(img(:,:,3))) * 1.2;
+end
+
+function [minh, maxh, mins, maxs, minv, maxv] = maskThreshHSV(img)
+    img = rgb2hsv(img);
+    minh = mean(mean(img(:,:,1))) * 0.95;   %hue's threshold should be tight
+    maxh = mean(mean(img(:,:,1))) * 1.05;
+    mins = mean(mean(img(:,:,2))) * 0.7;    %saturation's threshold should be more lenient b/c of lighting conditions
+    maxs = mean(mean(img(:,:,2))) * 1.3;
+    minv = mean(mean(img(:,:,3))) * 0.7;
+    maxv = mean(mean(img(:,:,3))) * 1.3;
 end
 
 %%%% This function lets tou select desired region on an image%%%%%%%%%%%
