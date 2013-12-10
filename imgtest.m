@@ -4,14 +4,42 @@ function [ output_args ] = imgtest( input_args )
     
     % Select a Mask, from the image
     %clc; clear;
-    [img, map1] = imread('ref.jpg');
-    D = dir('./imgs/*.jpg');
-    %I2 = imcrop(img);
-    
-    % Create the mask, binary image
-    red_mask = img(:,:,1) > 220 & img(:,:,2) < 150 & img(:,:,3) < 150;
+    [img, map1] = imread('ref2.jpg');
+    D = dir('./imgs2/*.jpg');
+    I2 = imcrop(img);
     figure(1);
-    %imshow(red_mask);
+    imshow(img);
+    
+%     figure(2);
+%     imshow(I2);
+    
+    avgred = mean(I2(:,:,1));
+    avggrn = mean(I2(:,:,2));
+    avgblu = mean(I2(:,:,3));
+    redmask = false;
+    grnmask = false;
+    blumask = false;
+    
+    if (avgred > avggrn) & (avgred > avgblu)
+       fprintf('red\n');
+        mask = img(:,:,1) > 220 & img(:,:,2) < 150 & img(:,:,3) < 150; 
+       redmask = true;
+    elseif (avggrn > avgred) & (avggrn > avgblu)
+        fprintf('green\n');
+        mask = img(:,:,1) < 150 & img(:,:,2) > 220 & img(:,:,3) < 150;
+        grnmask = true;
+    elseif (avgblu > avgred) & (avgblu > avggrn)
+        fprintf('blue\n');
+        mask = img(:,:,1) < 150 & img(:,:,2) < 150 & img(:,:,3) > 200;
+        blumask = true;
+    end
+    fprintf('bluemask:');
+    blumask
+    fprintf('\n');
+    % Create the mask, binary image
+    %red_mask = img(:,:,1) > 220 & img(:,:,2) < 150 & img(:,:,3) < 150;
+    figure(1);
+    imshow(mask);
     
     % Calculate centroid and area of blob
     
@@ -20,14 +48,14 @@ function [ output_args ] = imgtest( input_args )
     %centroid
     M10 = 0;
     M01 = 0;
-    for i= 1:size(red_mask, 1)     %Y Values
-        for j= 1:size(red_mask, 2) %X values
-           if( red_mask(i,j) == 1)
+    for i= 1:size(mask, 1)     %Y Values
+        for j= 1:size(mask, 2) %X values
+           if( mask(i,j) == 1)
               % assumes blob colors outside of the blob do not exist 
               M00 = M00 + 1;
               
-              M10 = M10 + (j ^ 1) * red_mask(i,j);
-              M01 = M01 + (i ^ 1) * red_mask(i,j);
+              M10 = M10 + (j ^ 1) * mask(i,j);
+              M01 = M01 + (i ^ 1) * mask(i,j);
            end
             
         end 
@@ -39,12 +67,21 @@ function [ output_args ] = imgtest( input_args )
     
     y = 6;
     for x=1:size(D,1)
-       [img, map2] = imread(strcat('./imgs/', D(x).name));       
-       red_mask_cur = img(:,:,1) > 220 & img(:,:,2) < 150 & img(:,:,3) < 150;
+       [img, map2] = imread(strcat('./imgs2/', D(x).name));       
+       %red_mask_cur = img(:,:,1) > 220 & img(:,:,2) < 150 & img(:,:,3) < 150;
+       
+       if redmask == true
+           mask_cur = img(:,:,1) > 220 & img(:,:,2) < 150 & img(:,:,3) < 150;
+       elseif grnmask == true
+           mask_cur = img(:,:,1) < 150 & img(:,:,2) > 220 & img(:,:,3) < 150;
+       elseif blumask == true
+           mask_cur = img(:,:,1) < 150 & img(:,:,2) < 150 & img(:,:,3) > 220;
+       end
+       
        iptsetpref('ImshowAxesVisible', 'on'),
-       subplot(1,2,1), imshow(red_mask, map1), iptsetpref('ImshowAxesVisible', 'on')
-       subplot(1,2,2), imshow(red_mask_cur, map2);
-       [M00_cur, xc_cur, yc_cur] = compareImage(red_mask_cur);
+       subplot(1,2,1), imshow(mask, map1), iptsetpref('ImshowAxesVisible', 'on')
+       subplot(1,2,2), imshow(mask_cur, map2);
+       [M00_cur, xc_cur, yc_cur] = compareImage(mask_cur);
        
        fprintf(D(x).name);
        fprintf('\n');
