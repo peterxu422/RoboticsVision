@@ -65,7 +65,7 @@ function threshImg = hw5_Team23(serPort)
     matchingColors = [-1 -1];
     size(threshImg)
     count = 1;
-    [blobSize blobPos] = getBlobs(threshImage);
+    [blobSize blobPos] = getBlobs(threshImage,0.05);
 
     %area
     M00 = 0;
@@ -156,19 +156,8 @@ function threshImg = hw5_Team23(serPort)
 
 end    
 
-function matchingColors = addMatch(matchingColors,A,B)
-if A ~= B
-    temp = [A B];
-    [~,indx]=ismember(temp,matchingColors,'rows');
 
-    if(indx < 1 && B ~= A)
-        matchingColors = [matchingColors;temp]; 
-        matchingColors = [matchingColors; [B A]]; 
-    end
-end
-end
-
-function [blobSize blobPos] = getBlobs(threshImg)
+function [blobSize blobPos] = getBlobs(threshImg,size)
     for i = 1 : size(threshImg,1)
         for j = 1 : size(threshImg,2)
             if threshImg(i,j) > 0 
@@ -229,7 +218,7 @@ function [blobSize blobPos] = getBlobs(threshImg)
      n = size(blobSize,1);
      i = 1;
     while i <= n 
-        if blobSize(i) < largest * 0.05
+        if blobSize(i) <= largest * size
             blobSize = blobSize([1:i-1, i+1:end]);
             blobPos = blobPos([1:i-1, i+1:end],:);
             n = n -1;
@@ -240,6 +229,18 @@ function [blobSize blobPos] = getBlobs(threshImg)
     
 end
 
+
+function matchingColors = addMatch(matchingColors,A,B)
+if A ~= B
+    temp = [A B];
+    [~,indx]=ismember(temp,matchingColors,'rows');
+
+    if(indx < 1 && B ~= A)
+        matchingColors = [matchingColors;temp]; 
+        matchingColors = [matchingColors; [B A]]; 
+    end
+end
+end
 
 function [bumped, currentPosX, currentPosY, currentRot] = bumpCheckReact(serPort, currentPosX, currentPosY, currentRot)
 % Check bump sensors and steer the robot away from obstacles if necessary
