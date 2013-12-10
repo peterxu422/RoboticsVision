@@ -2,7 +2,7 @@
 %Frederik Clinckemaillie - fec2109
 %Peter Xu - px2117
 
-function hw2_Team23(serPort)
+function threshImg = hw5_Team23(serPort)
 % Simple program for the iRobot Create or the associated simulator.  This
 % program will make the robot go straight until a wall is reached, and then
 % follow that wall until it arrives within a certain threshold of its
@@ -40,12 +40,33 @@ function hw2_Team23(serPort)
     
     % Create the mask, binary image
     [min1, max1, min2, max2, min3, max3] = maskThreshHSV(I2);
+    %[img, map1] = imread('ref.jpg');
+    threshImg = imread('img.jpg');
+    threshImg = rgb2gray(threshImg);    
+    size(threshImg)
+    
+    imshow(threshImg)
+    drawnow;
+    pause(0.25);
+    
+    %D = dir('./imgs/*.jpg');
+    %I2 = imcrop(img);
+    
+    % Create the mask, binary image
+    %red_mask = img(:,:,1) > 220 & img(:,:,2) < 150 & img(:,:,3) < 150;
+    %figure(1);
+    %imshow(red_mask);
+
     
     mask = (img(:,:,1) >= min1 & img(:,:,1) <= max1) & (img(:,:,2) >= min2 & img(:,:,2) <= max2) & (img(:,:,3) >= min3 & img(:,:,3) <= max3);
     figure(1);
     imshow(mask);
     % Calculate centroid and area of blob
-    
+    matchingColors = [-1 -1];
+    size(threshImg)
+    count = 1;
+    [blobSize blobPos] = getBlobs(threshImage);
+
     %area
     M00 = 0;
     %centroid
@@ -134,6 +155,91 @@ function hw2_Team23(serPort)
 	%%
 
 end    
+
+function matchingColors = addMatch(matchingColors,A,B)
+if A ~= B
+    temp = [A B];
+    [~,indx]=ismember(temp,matchingColors,'rows');
+
+    if(indx < 1 && B ~= A)
+        matchingColors = [matchingColors;temp]; 
+        matchingColors = [matchingColors; [B A]]; 
+    end
+end
+end
+
+function [blobSize blobPos] = getBlobs(threshImg)
+    for i = 1 : size(threshImg,1)
+        for j = 1 : size(threshImg,2)
+            if threshImg(i,j) > 0 
+                if i > 1
+                    L = threshImg(i-1,j);
+                else
+                    L = 0;
+                end
+                if j > 1
+                U = threshImg(i,j-1);
+                else
+                    U = 0;
+                end
+
+                if L > 0 && U == 0
+                    threshImg(i,j) = L;
+                elseif U > 0 && L == 0 
+                    threshImg(i,j) = U;
+                elseif L > 0 && U > 0
+                    threshImg(i,j) = L;
+                    temp = [L U];
+                    
+                    matchingColors = addMatch(matchingColors,L,U);
+                end
+                
+                if L == 0 && U == 0    
+                    threshImg(i,j) = count;
+                    count = count + 1;
+                end
+            end
+        end
+    end
+    
+    size(matchingColors)
+    matchingColors =  sortrows(matchingColors,[-1 2])
+    blobSize = zeros(count,1);
+    blobPos = zeros(count,2);
+    %
+    for i = 1 : size(threshImg,1)
+        for j = 1 : size(threshImg,2)
+            if threshImg(i,j) > 0
+                for k = 1: size(matchingColors,1)
+                    if matchingColors(k,1) == threshImg(i,j) && matchingColors(k,1) > matchingColors(k,2) 
+                        threshImg(i,j) = matchingColors(k,2);
+                        k =0;
+                    end
+                end
+                blobSize(threshImg(i,j)) = blobSize(threshImg(i,j)) + 1; 
+                blobPos(threshImg(i,j),1) = blobPos(threshImg(i,j),1) + i;
+                blobPos(threshImg(i,j),2) = blobPos(threshImg(i,j),2) + j;
+            end
+        end
+    end
+    blobPos(:,1) = blobPos(:,1) ./blobSize;
+    blobPos(:,2) = blobPos(:,2) ./blobSize;
+    
+    largest = max(blobSize)
+     n = size(blobSize,1);
+     i = 1;
+    while i <= n 
+        if blobSize(i) < largest * 0.05
+            blobSize = blobSize([1:i-1, i+1:end]);
+            blobPos = blobPos([1:i-1, i+1:end],:);
+            n = n -1;
+            i = i - 1;
+        end
+        i = i + 1;
+    end
+    
+end
+
 
 function [bumped, currentPosX, currentPosY, currentRot] = bumpCheckReact(serPort, currentPosX, currentPosY, currentRot)
 % Check bump sensors and steer the robot away from obstacles if necessary
