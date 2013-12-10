@@ -11,18 +11,12 @@ function hw2_Team23(serPort)
 % Input:
 % serPort - Serial port object, used for communicating over bluetooth
 
-    goalPointX = 4.0;
-    goalPointY = 0.0;
-    wallFollowing = 0;
-    finished = 0;
-
     % Set constants for this program
     maxDuration= 1200;  % Max time to allow the program to run (s)
     
     % Initialize loop variables
     tStart= tic;        % Time limit marker
-    distSansBump= 0;    % Distance traveled without hitting obstacles (m)
-    v= 0.2;               % Forward velocity (m/s)
+    v= 0.3;               % Forward velocity (m/s)
     w = 0;              %Initialize angular velocity to 0
     
     %Odometry Variables
@@ -71,6 +65,8 @@ function hw2_Team23(serPort)
     
     y = 6;
     for x=1:size(D,1)
+        
+       %Images
        [img, map2] = imread(strcat('./imgs/', D(x).name));       
        red_mask_cur = img(:,:,1) > 220 & img(:,:,2) < 150 & img(:,:,3) < 150;
        iptsetpref('ImshowAxesVisible', 'on'),
@@ -82,20 +78,31 @@ function hw2_Team23(serPort)
        fprintf('\n');
        fprintf('Area - Ref:%d, Cur:%d\n', M00, M00_cur);
        fprintf('Centr - Ref:%3.2f, Cur:%3.2f\n', xc, xc_cur);
+       
+       ang = pi/10;
+       w = 0.2;
        if(xc_cur >= (1.1 * xc))
-           fprintf('Turn right\n');
+           %fprintf('Turn right\n');
+           SetFwdVelAngVelCreate(serPort, 0, -w);
+           angleTurn(serPort, ang, currentPosX, currentPosY, currentRot);
        elseif (xc_cur <= (0.9 * xc))
-           fprintf('Turn left\n');
+           %fprintf('Turn left\n');
+           SetFwdVelAngVelCreate(serPort, 0, w);
+           angleTurn(serPort, ang, currentPosX, currentPosY, currentRot);
        else
-           fprintf('Dont Turn\n');
+           %fprintf('Dont Turn\n');
+           SetFwdVelAngVelCreate(serPort, 0, 0);
        end
        
        if(M00_cur >= (1.2 * M00))
-           fprintf('Move backward\n');
+           %fprintf('Move backward\n');
+           travelDist(serPort, v, -1.0);
        elseif (M00_cur <= (0.8 * M00))
-           fprintf('Move forward\n');
+           %fprintf('Move forward\n');
+           travelDist(serPort, v, 1.0);
        else
-           fprintf('Dont Move\n');
+           %fprintf('Dont Move\n');
+           SetFwdVelAngVelCreate(serPort, 0, 0);
        end
        
        fprintf('\n');
