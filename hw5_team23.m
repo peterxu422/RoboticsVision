@@ -2,7 +2,7 @@
 %Frederik Clinckemaillie - fec2109
 %Peter Xu - px2117
 
-function hw2_Team23(serPort)
+function hw5_Team23(serPort)
 % Simple program for the iRobot Create or the associated simulator.  This
 % program will make the robot go straight until a wall is reached, and then
 % follow that wall until it arrives within a certain threshold of its
