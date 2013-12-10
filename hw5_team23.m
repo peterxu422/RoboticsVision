@@ -18,7 +18,7 @@ function hw2_Team23(serPort)
     tStart= tic;        % Time limit marker
     v= 0.3;               % Forward velocity (m/s)
     w = 0;              %Initialize angular velocity to 0
-    
+    d = 0.3;
     %Odometry Variables
     currentPosX = 0.0;
     currentPosY = 0.0;
@@ -27,18 +27,23 @@ function hw2_Team23(serPort)
     %resetting the Sensors
     dist = DistanceSensorRoomba(serPort);
     ang = AngleSensorRoomba(serPort);
-  
+    
         % Select a Mask, from the image
     %clc; clear;
-    [img, map1] = imread('ref.jpg');
-    D = dir('./imgs/*.jpg');
-    %I2 = imcrop(img);
+    url = 'http://192.168.1.100:81/snapshot.cgi?user=admin&pwd=&resolution=32&rate=0';
+    [img, map1] = imread(url);
+    figure(1);
+    imshow(img);
+    %D = dir('./imgs/*.jpg');
+    I2 = imcrop(img);
+    img = rgb2hsv(img);
     
     % Create the mask, binary image
-    red_mask = img(:,:,1) > 220 & img(:,:,2) < 150 & img(:,:,3) < 150;
-    figure(1);
-    %imshow(red_mask);
+    [min1, max1, min2, max2, min3, max3] = maskThreshHSV(I2);
     
+    mask = (img(:,:,1) >= min1 & img(:,:,1) <= max1) & (img(:,:,2) >= min2 & img(:,:,2) <= max2) & (img(:,:,3) >= min3 & img(:,:,3) <= max3);
+    figure(1);
+    imshow(mask);
     % Calculate centroid and area of blob
     
     %area
@@ -46,14 +51,14 @@ function hw2_Team23(serPort)
     %centroid
     M10 = 0;
     M01 = 0;
-    for i= 1:size(red_mask, 1)     %Y Values
-        for j= 1:size(red_mask, 2) %X values
-           if( red_mask(i,j) == 1)
+    for i= 1:size(mask, 1)     %Y Values
+        for j= 1:size(mask, 2) %X values
+           if( mask(i,j) == 1)
               % assumes blob colors outside of the blob do not exist 
               M00 = M00 + 1;
               
-              M10 = M10 + (j ^ 1) * red_mask(i,j);
-              M01 = M01 + (i ^ 1) * red_mask(i,j);
+              M10 = M10 + (j ^ 1) * mask(i,j);
+              M01 = M01 + (i ^ 1) * mask(i,j);
            end
             
         end 
@@ -63,18 +68,18 @@ function hw2_Team23(serPort)
     xc = M10/M00;
     yc = M01/M00;
     
-    y = 6;
-    for x=1:size(D,1)
+    while true
         
        %Images
-       [img, map2] = imread(strcat('./imgs/', D(x).name));       
-       red_mask_cur = img(:,:,1) > 220 & img(:,:,2) < 150 & img(:,:,3) < 150;
+       [img, map2] = imread(url);   
+       img = rgb2hsv(img);
+       mask_cur = (img(:,:,1) >= min1 & img(:,:,1) <= max1) & (img(:,:,2) >= min2 & img(:,:,2) <= max2) & (img(:,:,3) >= min3 & img(:,:,3) <= max3);
+       figure(1);
        iptsetpref('ImshowAxesVisible', 'on'),
-       subplot(1,2,1), imshow(red_mask, map1), iptsetpref('ImshowAxesVisible', 'on')
-       subplot(1,2,2), imshow(red_mask_cur, map2);
-       [M00_cur, xc_cur, yc_cur] = compareImage(red_mask_cur);
+       subplot(1,2,1), imshow(mask, map1), iptsetpref('ImshowAxesVisible', 'on')
+       subplot(1,2,2), imshow(mask_cur, map2);
+       [M00_cur, xc_cur, yc_cur] = compareImage(mask_cur);
        
-       fprintf(D(x).name);
        fprintf('\n');
        fprintf('Area - Ref:%d, Cur:%d\n', M00, M00_cur);
        fprintf('Centr - Ref:%3.2f, Cur:%3.2f\n', xc, xc_cur);
@@ -96,10 +101,10 @@ function hw2_Team23(serPort)
        
        if(M00_cur >= (1.2 * M00))
            %fprintf('Move backward\n');
-           travelDist(serPort, v, -1.0);
+           travelDist(serPort, v, -d);
        elseif (M00_cur <= (0.8 * M00))
            %fprintf('Move forward\n');
-           travelDist(serPort, v, 1.0);
+           travelDist(serPort, v, d);
        else
            %fprintf('Dont Move\n');
            SetFwdVelAngVelCreate(serPort, 0, 0);
@@ -107,7 +112,7 @@ function hw2_Team23(serPort)
        
        fprintf('\n');
        
-       pause(7);
+       pause(2.7);
     end
 
     
@@ -115,12 +120,6 @@ function hw2_Team23(serPort)
     %orientation angle 0.
        %scatter(currentPosX,currentPosY); hold on;
     SetFwdVelAngVelCreate(serPort,v,w);
-	
-	time = zeros(maxDuration, 1);	% Create arrays for time and orientation to be printed later.
-	orient = zeros(maxDuration, 1);
-	tctr = 1;
-   
-    
         
     
     % Specify output parameter
@@ -130,9 +129,7 @@ function hw2_Team23(serPort)
     v= 0;
     w= 0;
     SetFwdVelAngVelCreate(serPort,v,w);
-    previousPosX = currentPosX;   currentPosY = currentPosY;
-    [currentPosX, currentPosY, currentRot] = updateCurrent(serPort,currentPosX, currentPosY, currentRot);
-	[tctr, time, orient] = recordOrient(tctr, time, orient, tStart, currentRot); %%
+
 	
 	%%
 
@@ -222,35 +219,6 @@ function [currentPosX, currentPosY, currentRot] = updateCurrent(serPort,posX, po
 
 end
 
-
-function wallFollowing = checkFoundLine(wallFollowing,currentPosX, currentPosY, leftStartArea, endX, endY, distThresh)
-% Check to see if the robot is within a certain threshold of the start
-% area.  If it is, the current robot position is compared to the previous
-% robot position to see if the robot is still getting closer to the start
-% point.  If it is found that the robot is getting further away from the 
-%
-% Input:
-% currentPosX - X component of the current position of the robot
-% currentPosY - Y component of the current position of the robot
-% previousPosX - X component of the previous position of the robot
-% previousPosY - Y component of the previous position of the robot
-% wallStartPosX - X component of the starting position of the robot after
-% it hit a wall
-% wallStartPosY - Y component of the starting position of the robot afterf
-% it hit a wall
-% inStartArea - Boolean marking whether the robot is in the start area.
-% leftStartArea-  Boolean marking whether the robot has once left the start
-% area.
-%
-% Output:
-% bumped -Boolean marking whether the robot is in the start area.
-distance = abs( -endX*currentPosY  + endY * currentPosX)/ sqrt(endX^2 + endY^2);
-    if distance < distThresh && leftStartArea
-        wallFollowing = 0;
-    end
-    fprintf('dist: %f wallfoll %d\n', distance, wallFollowing);
-end
-
 function [posX, posY, rot] =  angleTurn(serPort, ang, posX, posY, rot)
     angTurned = 0;
     fprintf('Angle turning: %f Goal: %f \n', angTurned, ang);
@@ -268,13 +236,6 @@ function [posX, posY, rot] =  angleTurn(serPort, ang, posX, posY, rot)
         [posX, posY, rot] =updateCurrent(serPort,posX, posY, rot);
         pause(0.1);
     end
-end
-
-function [tctr, time, orient] = recordOrient(tctr, time, orient, tStart, currentRot)
-    time(tctr) = toc(tStart);
-    orient(tctr) = currentRot;
-    fprintf('time: %4.2f, rot: %4.2f\n', time(tctr), orient(tctr));
-    tctr = tctr + 1;   
 end
 
 function w= v2w(v)
@@ -314,4 +275,24 @@ function [M00_cur, xc_cur, yc_cur] = compareImage(image)
     M00_cur = M00;
     xc_cur = M10/M00;
     yc_cur = M01/M00;
+end
+
+function [minr, maxr, ming, maxg, minb, maxb] = maskThreshRGB(img)
+    minr = mean(mean(img(:,:,1))) * 0.8;
+    maxr = mean(mean(img(:,:,1))) * 1.2;
+    ming = mean(mean(img(:,:,2))) * 0.8;
+    maxg = mean(mean(img(:,:,2))) * 1.2;
+    minb = mean(mean(img(:,:,3))) * 0.8;
+    maxb = mean(mean(img(:,:,3))) * 1.2;
+end
+
+function [minh, maxh, mins, maxs, minv, maxv] = maskThreshHSV(img)
+    img = rgb2hsv(img);
+    %assume already in hsv
+    minh = mean(mean(img(:,:,1))) * 0.95;   %hue's threshold should be tight
+    maxh = mean(mean(img(:,:,1))) * 1.05;
+    mins = mean(mean(img(:,:,2))) * 0.7;    %saturation's threshold should be more lenient b/c of lighting conditions
+    maxs = mean(mean(img(:,:,2))) * 1.3;
+    minv = mean(mean(img(:,:,3))) * 0.7;
+    maxv = mean(mean(img(:,:,3))) * 1.3;
 end
