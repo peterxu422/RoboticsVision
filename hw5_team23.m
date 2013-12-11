@@ -30,111 +30,102 @@ function threshImg = hw5_Team23(serPort)
     
         % Select a Mask, from the image
     %clc; clear;
-    url = 'http://192.168.1.100:81/snapshot.cgi?user=admin&pwd=&resolution=32&rate=0';
+    url = 'http://192.168.1.103:81/snapshot.cgi?user=admin&pwd=&resolution=32&rate=0';
     [img, map1] = imread(url);
     figure(1);
     imshow(img);
     %D = dir('./imgs/*.jpg');
     I2 = imcrop(img);
-    img = rgb2hsv(img);
+
     
     % Create the mask, binary image
     [min1, max1, min2, max2, min3, max3] = maskThreshHSV(I2);
-    %[img, map1] = imread('ref.jpg');
-    threshImg = imread('img.jpg');
-    threshImg = rgb2gray(threshImg);    
-    size(threshImg)
     
-    imshow(threshImg)
-    drawnow;
-    pause(0.25);
     
     %D = dir('./imgs/*.jpg');
     %I2 = imcrop(img);
     
     % Create the mask, binary image
-    %red_mask = img(:,:,1) > 220 & img(:,:,2) < 150 & img(:,:,3) < 150;
-    %figure(1);
-    %imshow(red_mask);
 
-    
+    img = rgb2hsv(img);
     mask = (img(:,:,1) >= min1 & img(:,:,1) <= max1) & (img(:,:,2) >= min2 & img(:,:,2) <= max2) & (img(:,:,3) >= min3 & img(:,:,3) <= max3);
+    threshImg = mask;
     figure(1);
     imshow(mask);
     % Calculate centroid and area of blob
     matchingColors = [-1 -1];
     size(threshImg)
     count = 1;
-    [blobSize blobPos] = getBlobs(threshImage,0.05);
-
+    %[blobSize blobPos] = getBlobs(threshImg,0.05);
+    
     %area
     M00 = 0;
     %centroid
     M10 = 0;
     M01 = 0;
-    for i= 1:size(mask, 1)     %Y Values
-        for j= 1:size(mask, 2) %X values
-           if( mask(i,j) == 1)
-              % assumes blob colors outside of the blob do not exist 
-              M00 = M00 + 1;
-              
-              M10 = M10 + (j ^ 1) * mask(i,j);
-              M01 = M01 + (i ^ 1) * mask(i,j);
-           end
-            
-        end 
-    end
-    
-    [M00 M10 M01];
-    xc = M10/M00;
-    yc = M01/M00;
-    
-    while true
-        
-       %Images
-       [img, map2] = imread(url);   
-       img = rgb2hsv(img);
-       mask_cur = (img(:,:,1) >= min1 & img(:,:,1) <= max1) & (img(:,:,2) >= min2 & img(:,:,2) <= max2) & (img(:,:,3) >= min3 & img(:,:,3) <= max3);
-       figure(1);
-       iptsetpref('ImshowAxesVisible', 'on'),
-       subplot(1,2,1), imshow(mask, map1), iptsetpref('ImshowAxesVisible', 'on')
-       subplot(1,2,2), imshow(mask_cur, map2);
-       [M00_cur, xc_cur, yc_cur] = compareImage(mask_cur);
-       
-       fprintf('\n');
-       fprintf('Area - Ref:%d, Cur:%d\n', M00, M00_cur);
-       fprintf('Centr - Ref:%3.2f, Cur:%3.2f\n', xc, xc_cur);
-       
-       ang = pi/10;
-       w = 0.2;
-       if(xc_cur >= (1.1 * xc))
-           %fprintf('Turn right\n');
-           SetFwdVelAngVelCreate(serPort, 0, -w);
-           angleTurn(serPort, ang, currentPosX, currentPosY, currentRot);
-       elseif (xc_cur <= (0.9 * xc))
-           %fprintf('Turn left\n');
-           SetFwdVelAngVelCreate(serPort, 0, w);
-           angleTurn(serPort, ang, currentPosX, currentPosY, currentRot);
-       else
-           %fprintf('Dont Turn\n');
-           SetFwdVelAngVelCreate(serPort, 0, 0);
-       end
-       
-       if(M00_cur >= (1.2 * M00))
-           %fprintf('Move backward\n');
-           travelDist(serPort, v, -d);
-       elseif (M00_cur <= (0.8 * M00))
-           %fprintf('Move forward\n');
-           travelDist(serPort, v, d);
-       else
-           %fprintf('Dont Move\n');
-           SetFwdVelAngVelCreate(serPort, 0, 0);
-       end
-       
-       fprintf('\n');
-       
-       pause(2.7);
-    end
+%     for i= 1:size(mask, 1)     %Y Values
+%         for j= 1:size(mask, 2) %X values
+%            if( mask(i,j) == 1)
+%               % assumes blob colors outside of the blob do not exist 
+%               M00 = M00 + 1;
+%               
+%               M10 = M10 + (j ^ 1) * mask(i,j);
+%               M01 = M01 + (i ^ 1) * mask(i,j);
+%            end
+%             
+%         end 
+%     end
+%     
+%     [M00 M10 M01];
+%     xc = M10/M00;
+%     yc = M01/M00;
+%     
+%     while true
+%         
+%        %Images
+%        [img, map2] = imread(url);   
+%        img = rgb2hsv(img);
+%        mask_cur = (img(:,:,1) >= min1 & img(:,:,1) <= max1) & (img(:,:,2) >= min2 & img(:,:,2) <= max2) & (img(:,:,3) >= min3 & img(:,:,3) <= max3);
+%        figure(1);
+%        iptsetpref('ImshowAxesVisible', 'on'),
+%        subplot(1,2,1), imshow(mask, map1), iptsetpref('ImshowAxesVisible', 'on')
+%        subplot(1,2,2), imshow(mask_cur, map2);
+%        [M00_cur, xc_cur, yc_cur] = compareImage(mask_cur);
+%        
+%        fprintf('\n');
+%        fprintf('Area - Ref:%d, Cur:%d\n', M00, M00_cur);
+%        fprintf('Centr - Ref:%3.2f, Cur:%3.2f\n', xc, xc_cur);
+%        
+%        ang = pi/10;
+%        w = 0.2;
+%        if(xc_cur >= (1.1 * xc))
+%            %fprintf('Turn right\n');
+%            SetFwdVelAngVelCreate(serPort, 0, -w);
+%            angleTurn(serPort, ang, currentPosX, currentPosY, currentRot);
+%        elseif (xc_cur <= (0.9 * xc))
+%            %fprintf('Turn left\n');
+%            SetFwdVelAngVelCreate(serPort, 0, w);
+%            angleTurn(serPort, ang, currentPosX, currentPosY, currentRot);
+%        else
+%            %fprintf('Dont Turn\n');
+%            SetFwdVelAngVelCreate(serPort, 0, 0);
+%        end
+%        
+%        if(M00_cur >= (1.2 * M00))
+%            %fprintf('Move backward\n');
+%            travelDist(serPort, v, -d);
+%        elseif (M00_cur <= (0.8 * M00))
+%            %fprintf('Move forward\n');
+%            travelDist(serPort, v, d);
+%        else
+%            %fprintf('Dont Move\n');
+%            SetFwdVelAngVelCreate(serPort, 0, 0);
+%        end
+%        
+%        fprintf('\n');
+%        
+%        pause(2.7);
+%     end
 
     
     %Plots the position of the robot. (assumes a start at (0,0) with
@@ -158,6 +149,9 @@ end
 
 
 function [blobSize blobPos] = getBlobs(threshImg,size)
+    matchingColors = [-1 -1];
+    size(threshImg)
+	count = 1;
     for i = 1 : size(threshImg,1)
         for j = 1 : size(threshImg,2)
             if threshImg(i,j) > 0 
