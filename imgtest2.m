@@ -5,7 +5,7 @@ function [ output_args ] = imgtest( input_args )
     % Select a Mask, from the image
     %clc; clear;
     url = 'http://192.168.1.100:81/snapshot.cgi?user=admin&pwd=&resolution=32&rate=0';
-    [img, map1] = imread(url);
+    [img, map1] = getimage(url,'jpg');
     D = dir('./imgs/*.jpg');
     I2 = imcrop(img);
     img = rgb2hsv(img);
@@ -15,7 +15,7 @@ function [ output_args ] = imgtest( input_args )
 %     figure(2);
 %     imshow(I2);
 
-    %avgimg = mean(I2);
+    %avgimg = mean(I2);s
     %size(avgimg)
     
     
