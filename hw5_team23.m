@@ -30,8 +30,8 @@ function threshImg = hw5_Team23(serPort)
     
         % Select a Mask, from the image
     %clc; clear;
-    url = 'http://192.168.1.103:81/snapshot.cgi?user=admin&pwd=&resolution=32&rate=0';
-    [img, map1] = imread(url);
+    url = 'http://192.168.1.100:81/snapshot.cgi?user=admin&pwd=&resolution=32&rate=0';
+    img = getimage(url, 'jpg');
     figure(1);
     imshow(img);
     %D = dir('./imgs/*.jpg');
@@ -54,9 +54,14 @@ function threshImg = hw5_Team23(serPort)
     imshow(mask);
     % Calculate centroid and area of blob
     matchingColors = [-1 -1];
-    size(threshImg)
-    count = 1;
-    %[blobSize blobPos] = getBlobs(threshImg,0.05);
+    %size(threshImg)
+    %count = 1;
+    fprintf('Blobsssssss');
+    [blobSize blobPos] = getBlobs(threshImg,1)
+    fprintf('\n\n');
+    
+    blobSize
+   
     
     %area
     M00 = 0;
@@ -80,24 +85,50 @@ function threshImg = hw5_Team23(serPort)
 %     xc = M10/M00;
 %     yc = M01/M00;
 %     
-%     while true
-%         
-%        %Images
-%        [img, map2] = imread(url);   
-%        img = rgb2hsv(img);
-%        mask_cur = (img(:,:,1) >= min1 & img(:,:,1) <= max1) & (img(:,:,2) >= min2 & img(:,:,2) <= max2) & (img(:,:,3) >= min3 & img(:,:,3) <= max3);
+    while true
+        
+       %Images
+       img = getimage(url, 'jpg');   
+       img = rgb2hsv(img);
+       mask_cur = (img(:,:,1) >= min1 & img(:,:,1) <= max1) & (img(:,:,2) >= min2 & img(:,:,2) <= max2) & (img(:,:,3) >= min3 & img(:,:,3) <= max3);
 %        figure(1);
 %        iptsetpref('ImshowAxesVisible', 'on'),
 %        subplot(1,2,1), imshow(mask, map1), iptsetpref('ImshowAxesVisible', 'on')
 %        subplot(1,2,2), imshow(mask_cur, map2);
-%        [M00_cur, xc_cur, yc_cur] = compareImage(mask_cur);
-%        
-%        fprintf('\n');
-%        fprintf('Area - Ref:%d, Cur:%d\n', M00, M00_cur);
-%        fprintf('Centr - Ref:%3.2f, Cur:%3.2f\n', xc, xc_cur);
-%        
-%        ang = pi/10;
-%        w = 0.2;
+       %[M00_cur, xc_cur, yc_cur] = compareImage(mask_cur);
+       figure(1);
+       imshow(mask_cur);
+       [blobSzCur blobPosCur] = getBlobs(mask_cur, 1);
+       
+       size(blobPos)
+       fprintf('\n');
+       fprintf('Area - Ref:%d, Cur:%d\n', blobSize, blobSzCur);
+       fprintf('Centr - Ref:%3.2f, Cur:%3.2f\n', blobPos(2), blobPosCur(2));
+       
+       ang = pi/10;
+       w = 0.2;
+       
+       if(blobPosCur(2) > (1.1 * blobPos(2)))
+          %fprintf('Turn right\n');
+          SetFwdVelAngVelCreate(serPort, 0, -w);
+          angleTurn(serPort, ang, currentPosX, currentPosY, currentRot);
+       elseif (blobPosCur(2) <= (0.9 * blobPos(2)))
+          %fprintf('Turn left\n');
+          SetFwdVelAngVelCreate(serPort, 0, w);
+          angleTurn(serPort, ang, currentPosX, currentPosY, currentRot);
+       else
+           %fprintf('Dont Turn\n');
+           SetFwdVelAngVelCreate(serPort, 0, 0);
+       end
+       
+       if(blobSzCur >= (1.2 * blobSize))
+            travelDist(serPort, v, -d);
+       elseif (blobSzCur <= (0.8 * blobSize))
+            travelDist(serPort, v, d);
+       else
+            SetFwdVelAngVelCreate(serPort, 0, 0);
+       end
+       
 %        if(xc_cur >= (1.1 * xc))
 %            %fprintf('Turn right\n');
 %            SetFwdVelAngVelCreate(serPort, 0, -w);
@@ -121,11 +152,11 @@ function threshImg = hw5_Team23(serPort)
 %            %fprintf('Dont Move\n');
 %            SetFwdVelAngVelCreate(serPort, 0, 0);
 %        end
-%        
-%        fprintf('\n');
-%        
-%        pause(2.7);
-%     end
+       
+       fprintf('\n');
+       
+       %pause(.05);
+    end
 
     
     %Plots the position of the robot. (assumes a start at (0,0) with
@@ -142,15 +173,11 @@ function threshImg = hw5_Team23(serPort)
     w= 0;
     SetFwdVelAngVelCreate(serPort,v,w);
 
-	
-	%%
-
 end    
 
 
-function [blobSize blobPos] = getBlobs(threshImg,size)
+function [blobSize blobPos] = getBlobs(threshImg,x)
     matchingColors = [-1 -1];
-    size(threshImg)
 	count = 1;
     for i = 1 : size(threshImg,1)
         for j = 1 : size(threshImg,2)
@@ -185,8 +212,8 @@ function [blobSize blobPos] = getBlobs(threshImg,size)
         end
     end
     
-    size(matchingColors)
-    matchingColors =  sortrows(matchingColors,[-1 2])
+    size(matchingColors);
+    matchingColors =  sortrows(matchingColors,[-1 2]);
     blobSize = zeros(count,1);
     blobPos = zeros(count,2);
     %
@@ -208,11 +235,11 @@ function [blobSize blobPos] = getBlobs(threshImg,size)
     blobPos(:,1) = blobPos(:,1) ./blobSize;
     blobPos(:,2) = blobPos(:,2) ./blobSize;
     
-    largest = max(blobSize)
+    largest = max(blobSize);
      n = size(blobSize,1);
      i = 1;
     while i <= n 
-        if blobSize(i) <= largest * size
+        if blobSize(i) < largest * x
             blobSize = blobSize([1:i-1, i+1:end]);
             blobPos = blobPos([1:i-1, i+1:end],:);
             n = n -1;
@@ -389,7 +416,6 @@ end
 
 function [minh, maxh, mins, maxs, minv, maxv] = maskThreshHSV(img)
     img = rgb2hsv(img);
-    %assume already in hsv
     minh = mean(mean(img(:,:,1))) * 0.95;   %hue's threshold should be tight
     maxh = mean(mean(img(:,:,1))) * 1.05;
     mins = mean(mean(img(:,:,2))) * 0.7;    %saturation's threshold should be more lenient b/c of lighting conditions
