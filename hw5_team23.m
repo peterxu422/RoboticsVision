@@ -40,10 +40,6 @@ function threshImg = hw5_Team23(serPort)
     
     % Create the mask, binary image
     [min1, max1, min2, max2, min3, max3] = maskThreshHSV(I2);
-    %[img, map1] = imread('ref.jpg');
-    
-    %threshImg = rgb2gray(threshImg);    
-    %size(threshImg)
     
     
     %D = dir('./imgs/*.jpg');
@@ -392,7 +388,7 @@ function [minr, maxr, ming, maxg, minb, maxb] = maskThreshRGB(img)
 end
 
 function [minh, maxh, mins, maxs, minv, maxv] = maskThreshHSV(img)
-    %img = rgb2hsv(img);
+    img = rgb2hsv(img);
     %assume already in hsv
     minh = mean(mean(img(:,:,1))) * 0.95;   %hue's threshold should be tight
     maxh = mean(mean(img(:,:,1))) * 1.05;
